@@ -14,8 +14,6 @@
 
 #include "input.h"
 #include "sdl_wrappers.h"
-
-extern input_event last_input;
 #endif
 
 namespace touch_ui
@@ -230,6 +228,47 @@ int selected_radial_slot( const ImVec2 center, const ImVec2 pointer, const std::
            static_cast<int>( count );
 }
 
+SDL_Keymod modifiers_for_binding( const input_event &binding )
+{
+    int modifiers = 0;
+    if( binding.modifiers.count( keymod_t::ctrl ) != 0 ) {
+        modifiers |= KMOD_CTRL;
+    }
+    if( binding.modifiers.count( keymod_t::shift ) != 0 ) {
+        modifiers |= KMOD_SHIFT;
+    }
+    if( binding.modifiers.count( keymod_t::alt ) != 0 ) {
+        modifiers |= KMOD_ALT;
+    }
+    return static_cast<SDL_Keymod>( modifiers );
+}
+
+bool enqueue_keyboard_binding( const input_event &binding )
+{
+    if( binding.sequence.size() != 1 ||
+        ( binding.type != input_event_t::keyboard_code && binding.type != input_event_t::keyboard_char ) ) {
+        return false;
+    }
+
+    SDL_Event event{};
+    event.type = CATA_KEYDOWN;
+#if SDL_MAJOR_VERSION >= 3
+    event.key.type = CATA_KEYDOWN;
+    event.key.key = static_cast<SDL_Keycode>( binding.get_first_input() );
+    event.key.mod = modifiers_for_binding( binding );
+    event.key.down = true;
+    event.key.repeat = false;
+#else
+    event.key.type = CATA_KEYDOWN;
+    event.key.state = SDL_PRESSED;
+    event.key.repeat = 0;
+    event.key.keysym.sym = static_cast<SDL_Keycode>( binding.get_first_input() );
+    event.key.keysym.mod = modifiers_for_binding( binding );
+#endif
+    ( void )SDL_PushEvent( &event );
+    return true;
+}
+
 void emit_radial_action( const radial_action &item )
 {
     input_context *context = active_input_context();
@@ -237,15 +276,21 @@ void emit_radial_action( const radial_action &item )
         return;
     }
 
-    // Prototype bridge only.  The radial selects semantic CDDA actions, but the
-    // current input manager accepts physical events.  Replay one existing binding
-    // until input_context grows a direct action queue for touch/gamepad UI surfaces.
-    std::vector<input_event> events = context->keys_bound_to( item.action_id, -1, false, true );
-    if( events.empty() ) {
-        events = context->keys_bound_to( item.action_id, -1, false, false );
+    // The radial resolves a semantic CDDA action first.  For this desktop
+    // prototype, bridge that action into the existing input pump by enqueuing
+    // one of its keyboard bindings.  The touch model itself remains independent
+    // of which physical key happens to be bound to the action.
+    const std::vector<input_event> events = context->keys_bound_to( item.action_id, -1, false, true );
+    const auto preferred = std::find_if( events.begin(), events.end(), []( const input_event &event ) {
+        return event.type == input_event_t::keyboard_code && event.sequence.size() == 1;
+    } );
+    if( preferred != events.end() && enqueue_keyboard_binding( *preferred ) ) {
+        return;
     }
-    if( !events.empty() ) {
-        ::last_input = events.front();
+    for( const input_event &event : events ) {
+        if( enqueue_keyboard_binding( event ) ) {
+            return;
+        }
     }
 }
 
