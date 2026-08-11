@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "input_context.h"
+
 namespace touch_ui
 {
 namespace
@@ -97,6 +99,18 @@ std::optional<radial_action> resolve_radial_family(
     return std::nullopt;
 }
 
+std::optional<radial_action> resolve_radial_family(
+    const radial_action_family &family,
+    const input_context &context )
+{
+    for( const std::string &candidate : family.candidates ) {
+        if( context.is_registered_action( candidate ) ) {
+            return radial_action{ family.semantic_id, family.label, family.icon_id, candidate };
+        }
+    }
+    return std::nullopt;
+}
+
 std::string fallback_icon_for_action( const std::string &action_id )
 {
     if( action_id.find( "fire" ) != std::string::npos || action_id.find( "attack" ) != std::string::npos ) {
@@ -163,6 +177,29 @@ std::vector<radial_action> build_radial_actions(
         }
     }
 
+    return result;
+}
+
+std::vector<radial_action> build_radial_actions(
+    const input_context &context,
+    const std::size_t max_items )
+{
+    std::vector<radial_action> result;
+    if( max_items == 0 ) {
+        return result;
+    }
+
+    result.reserve( max_items );
+    for( const radial_action_family &family : default_radial_families() ) {
+        const std::optional<radial_action> resolved = resolve_radial_family( family, context );
+        if( !resolved ) {
+            continue;
+        }
+        result.push_back( *resolved );
+        if( result.size() == max_items ) {
+            break;
+        }
+    }
     return result;
 }
 
