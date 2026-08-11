@@ -19,6 +19,7 @@
 #if defined(TILES)
 #include "sdl_wrappers.h"
 #include "sdltiles.h"
+#include "touch_radial.h"
 #endif
 
 using ui_stack_t = std::vector<std::reference_wrapper<ui_adaptor>>;
@@ -359,6 +360,11 @@ void ui_adaptor::invalidate( const rectangle<point> &rect, const bool reenable_u
 
 bool ui_adaptor::has_imgui()
 {
+#if defined(TILES)
+    if( touch_ui::radial_overlay_wants_frame() ) {
+        return true;
+    }
+#endif
     for( auto ui : ui_stack ) {
         if( ui.get().is_imgui ) {
             return true;
@@ -529,6 +535,7 @@ void ui_adaptor::redraw_invalidated( )
         imgui_frame_started = false;
         return;
     }
+    touch_ui::draw_radial_overlay();
 #endif
     imclient->end_frame();
     imgui_frame_started = false;
