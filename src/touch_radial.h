@@ -71,6 +71,17 @@ std::vector<radial_action> build_radial_actions(
 /** Stable icon identifier for a raw action that did not match a semantic family. */
 std::string fallback_icon_for_action( const std::string &action_id );
 
+/**
+ * SDL/ImGui integration hooks for the prototype radial overlay.
+ *
+ * Desktop testing uses press-and-hold of the right mouse button.  These hooks
+ * are intentionally input-device agnostic at the semantic layer so iOS finger
+ * gestures can drive the same overlay later.
+ */
+bool radial_overlay_wants_frame();
+bool radial_overlay_should_capture_mouse();
+void draw_radial_overlay();
+
 } // namespace touch_ui
 
 #endif // CATA_SRC_TOUCH_RADIAL_H
