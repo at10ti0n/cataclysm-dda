@@ -44,13 +44,27 @@ TEST_CASE( "touch_radial_semantic_action_changes_with_context", "[touch][radial]
     CHECK( close_context->action_id == "close" );
 }
 
+TEST_CASE( "touch_radial_prefers_existing_interact_umbrella_action", "[touch][radial]" )
+{
+    const std::vector<touch_ui::radial_action> radial = touch_ui::build_radial_actions(
+                { "interact", "open", "close", "examine" } );
+
+    const auto interact = std::find_if( radial.begin(), radial.end(), []( const touch_ui::radial_action &item ) {
+        return item.semantic_id == "interact";
+    } );
+
+    REQUIRE( interact != radial.end() );
+    CHECK( interact->action_id == "interact" );
+}
+
 TEST_CASE( "touch_radial_omits_touch_native_navigation", "[touch][radial]" )
 {
     const std::vector<touch_ui::radial_action> radial = touch_ui::build_radial_actions(
                 { "UP", "DOWN", "LEFT", "RIGHT", "inventory" } );
 
     REQUIRE( radial.size() == 1 );
-    CHECK( radial.front().semantic_id == "inventory" );
+    CHECK( radial.front().semantic_id == "items" );
+    CHECK( radial.front().action_id == "inventory" );
 }
 
 TEST_CASE( "touch_radial_has_icon_fallback_and_slot_limit", "[touch][radial]" )
