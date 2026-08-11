@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+class input_context;
+
 namespace touch_ui
 {
 
@@ -43,13 +45,27 @@ std::optional<radial_action> resolve_radial_family(
     const radial_action_family &family,
     const std::vector<std::string> &available_actions );
 
+/** Resolve one semantic family directly against an active CDDA input context. */
+std::optional<radial_action> resolve_radial_family(
+    const radial_action_family &family,
+    const input_context &context );
+
 /**
- * Build a compact radial from the actions registered by the active input_context.
- * Direction/navigation actions are intentionally omitted because touch movement
- * and list navigation should be handled directly by gestures.
+ * Build a compact radial from a list of registered actions.  Direction/navigation
+ * actions are intentionally omitted because touch movement and list navigation
+ * should be handled directly by gestures.
  */
 std::vector<radial_action> build_radial_actions(
     const std::vector<std::string> &available_actions,
+    std::size_t max_items = 8 );
+
+/**
+ * Build the semantic radial directly from the current input_context.  This is
+ * the bridge the SDL touch layer uses; it does not require platform-specific
+ * access to input_context internals.
+ */
+std::vector<radial_action> build_radial_actions(
+    const input_context &context,
     std::size_t max_items = 8 );
 
 /** Stable icon identifier for a raw action that did not match a semantic family. */
