@@ -1,0 +1,60 @@
+#pragma once
+#ifndef CATA_SRC_TOUCH_RADIAL_H
+#define CATA_SRC_TOUCH_RADIAL_H
+
+#include <cstddef>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace touch_ui
+{
+
+/**
+ * A semantic radial slot presented to a touch user.
+ *
+ * action_id is still a normal CDDA input action descriptor.  The semantic_id
+ * and icon_id are presentation concepts only; gameplay never needs to know
+ * about them.
+ */
+struct radial_action {
+    std::string semantic_id;
+    std::string label;
+    std::string icon_id;
+    std::string action_id;
+};
+
+/**
+ * One stable touch intent can stand in for several legacy/key-oriented actions.
+ * The first candidate registered by the active input_context wins.
+ */
+struct radial_action_family {
+    std::string semantic_id;
+    std::string label;
+    std::string icon_id;
+    std::vector<std::string> candidates;
+};
+
+/** Default ordered touch vocabulary.  Earlier families occupy radial slots first. */
+const std::vector<radial_action_family> &default_radial_families();
+
+/** Resolve one semantic family against action descriptors available in a context. */
+std::optional<radial_action> resolve_radial_family(
+    const radial_action_family &family,
+    const std::vector<std::string> &available_actions );
+
+/**
+ * Build a compact radial from the actions registered by the active input_context.
+ * Direction/navigation actions are intentionally omitted because touch movement
+ * and list navigation should be handled directly by gestures.
+ */
+std::vector<radial_action> build_radial_actions(
+    const std::vector<std::string> &available_actions,
+    std::size_t max_items = 8 );
+
+/** Stable icon identifier for a raw action that did not match a semantic family. */
+std::string fallback_icon_for_action( const std::string &action_id );
+
+} // namespace touch_ui
+
+#endif // CATA_SRC_TOUCH_RADIAL_H
